@@ -69,7 +69,7 @@ cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_
 }
 #endif
 
-void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_sim::control_t> &u)
+void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_sim::control_t> &u,double dt)
 {
   std::vector<double> vx, vy, w, k;
   double i = 0;
@@ -78,15 +78,15 @@ void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_
     vx.push_back(v(0));
     vy.push_back(v(1));
     w.push_back(v(2));
-    k.push_back(i);
+    k.push_back(i*dt);
     i++;
   }
   plt.grid();
-  plt.xlim(Args(0, k.size()));
-  plt.ylim(Args(-3., 3.));
-  plt.plot(Args(k, vx), Kwargs("color"_a = "red", "linewidth"_a = 1.0, "marker"_a = "."));
-  plt.plot(Args(k, vy), Kwargs("color"_a = "green", "linewidth"_a = 1.0, "marker"_a = "."));
-  plt.plot(Args(k, w), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "."));
+  plt.xlim(Args(0, k.size()*dt));
+  plt.ylim(Args(-3, 3));
+  plt.plot(Args(k, vx), Kwargs("color"_a = "red",  "linestyle"_a = "--"));
+  plt.plot(Args(k, vy), Kwargs("color"_a = "green",  "linestyle"_a = "--"));
+  plt.plot(Args(k, w), Kwargs("color"_a = "blue",  "linestyle"_a = "--"));
 }
 
 int main()
@@ -94,7 +94,7 @@ int main()
   pybind11::scoped_interpreter guard{};
   auto plt = matplotlibcpp17::pyplot::import();
   // auto fig = plt.figure();
-  auto [fig, ax] = plt.subplots(1, 2, Kwargs("figsize"_a = py::make_tuple(15, 15), "subplot_kw"_a = py::dict("aspect"_a = "equal")));
+  auto [fig, ax] = plt.subplots(1, 3, Kwargs("figsize"_a = py::make_tuple(18, 7), "subplot_kw"_a = py::dict("aspect"_a = "equal")));
   cpp_robot_sim::simulator sim(plt, f, ROBOT_SIZE, ROBOT_SIZE);
   MPPI::param_t param;
   param.T = 40;
@@ -146,8 +146,9 @@ int main()
     sim.x_t(0) = v_t(0);
     sim.x_t(1) = v_t(1);
     sim.x_t(2) = v_t(2);
+    plt.subplot(132);
     // ax.set_aspect(Args("equal"));
-    plt.subplot(122);
+    // plt.axes().set_aspect(Args("equal"));
     plt.cla();
     plt.grid();
     plt.xlim(Args(sim.x_t(3) - WINDOW_SIZE, sim.x_t(3) + WINDOW_SIZE));
@@ -171,7 +172,7 @@ int main()
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_goal(3), x_goal(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(true);
-    plt.subplot(221);
+    plt.subplot(131);
     plt.cla();
     plt.grid();
     plt.xlim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
@@ -179,9 +180,9 @@ int main()
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_goal(3), x_goal(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(true);
-    plt.subplot(223);
+    plt.subplot(133);
     plt.cla();
-    draw_vel(plt, u);
+    draw_vel(plt, u, 0.1);
     plt.pause(Args(0.01));
     // sleep(1);
   }
