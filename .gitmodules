@@ -1,0 +1,3 @@
+[submodule "include/cpp_robot_sim"]
+	path = include/cpp_robot_sim
+	url = https://github.com/eieioF11/cpp_robot_sim.git
