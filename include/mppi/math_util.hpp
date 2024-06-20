@@ -132,17 +132,10 @@ namespace MPPI {
    * @param angle
    * @return double
    */
-  static inline double normalize_angle_positive(double angle) { return std::fmod(std::fmod(angle, TWO_PI) + TWO_PI, PI); }
-
-  /**
-   * @brief
-   *
-   * @param angle
-   * @return double
-   */
   static inline double normalize_angle(double angle) {
-    double a = normalize_angle_positive(angle);
-    if (a > PI) a -= TWO_PI;
+
+    double a = std::fmod(angle + PI, TWO_PI)-PI;
+    if (a < -PI) a += TWO_PI;
     return a;
   }
 
