@@ -124,12 +124,18 @@ namespace MPPI {
     }
 
   public:
+
+    /**
+     * @brief Construct a new MPPIPathPlanner object
+     *
+     * @param param MPPIのパラメータ
+     * @param f 運動学モデル
+     */
     MPPIPathPlanner(param_t param, std::function<state_t(state_t, control_t, double)> f) {
       f_      = f;
       param_  = param;
       ganmma_ = param_.lambda * (1.0 - param_.alpha);
       // メモリ確保
-      // path_.resize(param_.T);
       sample_path_.resize(param_.K);
       for (size_t i = 0; i < param_.K; i++)
         sample_path_[i].resize(param_.T);
@@ -141,10 +147,23 @@ namespace MPPI {
       u_pre_ = u_;
       opt_path_.resize(param_.T);
     }
+    /**
+     * @brief 制御入力の制限設定
+     *
+     * @param min 最小値
+     * @param max 最大値
+     */
     void set_velocity_limit(std::array<double, 3> min, std::array<double, 3> max) {
       VEL_MAX = max;
       VEL_MIN = min;
     }
+    /**
+     * @brief MPPI計算
+     *
+     * @param x_t 現在の状態
+     * @param x_goal ゴールの状態
+     * @return std::vector<control_t> 制御入力
+     */
     std::vector<control_t> path_planning(state_t x_t, state_t x_goal) {
       x_t(5)                                          = normalize_angle(x_t(5));
       u_                                              = u_pre_;
@@ -184,7 +203,17 @@ namespace MPPI {
       u_pre_[U_N - 1] = u_[U_N - 1];
       return u_;
     }
+    /**
+     * @brief 最適経路の取得
+     *
+     * @return std::vector<state_t> 最適経路
+     */
     std::vector<state_t> get_opt_path() { return opt_path_; }
+    /**
+     * @brief サンプル経路の取得
+     *
+     * @return std::vector<std::vector<state_t>> サンプル経路
+     */
     std::vector<std::vector<state_t>> get_sample_path() { return sample_path_; }
   };
 } // namespace MPPI
