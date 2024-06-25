@@ -15,8 +15,9 @@
 #include <matplotlibcpp17/pyplot.h>
 // Eigen
 #include <Eigen/Dense>
+// OpenMP
+#include <omp.h>
 // MPPI
-#define USE_OMP
 #include "../include/cpp_robot_sim/simulator.hpp"
 #include "../include/mppi/mppi.hpp"
 
@@ -91,6 +92,7 @@ void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_
 
 int main()
 {
+  std::cout << "MAX threads NUM:" << omp_get_max_threads() << std::endl;
   pybind11::scoped_interpreter guard{};
   auto plt = matplotlibcpp17::pyplot::import();
   // auto fig = plt.figure();
@@ -98,7 +100,8 @@ int main()
   cpp_robot_sim::simulator sim(plt, f, ROBOT_SIZE, ROBOT_SIZE);
   MPPI::param_t param;
   param.T = 40;
-  param.K = 200;
+  // param.K = 200;
+  param.K = 500;
   param.dt = 0.01;
   param.lambda = 1.0;
   param.alpha = 0.8;

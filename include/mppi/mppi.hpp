@@ -14,23 +14,17 @@
 #include <unistd.h>
 #include <vector>
 // OpenMP
-
-#if defined(USE_OMP)
 #include <omp.h>
-#endif
 // Eigen
 #include <Eigen/Dense>
 //
 #include "math_util.hpp"
 #include "param.hpp"
+#include "utility.hpp"
 
 namespace MPPI {
   class MPPIPathPlanner {
   private:
-    constexpr static int DIM_U = 3;
-    constexpr static int DIM_X = 6;
-    typedef Eigen::Matrix<double, DIM_U, 1> vec3_t;
-    typedef Eigen::Matrix<double, DIM_X, 1> vec6_t;
     typedef vec3_t control_t;
     typedef vec6_t state_t;
 
@@ -38,6 +32,7 @@ namespace MPPI {
     state_t x_t;
     param_t param_;
     double ganmma_;
+    Eigen::Matrix<double, 3, 3> inv_sigma_;
     std::array<double, 3> VEL_MAX = {1.0, 1.0, 1.0};
     std::array<double, 3> VEL_MIN = {-1.0, -1.0, -1.0};
     std::vector<control_t> u_, u_pre_;
@@ -89,10 +84,12 @@ namespace MPPI {
       // 正規化項計算
       double inv_lambda = 1.0 / param_.lambda;
       double eta        = 0;
+#pragma omp parallel for reduction(+ : eta)
       for (const auto& c : s)
         eta += std::exp(-inv_lambda * (c - rho));
       // 重み計算
       double inv_eta = 1.0 / eta;
+#pragma omp parallel for
       for (size_t i = 0; i < param_.K; i++)
         weight_[i] = inv_eta * std::exp(-inv_lambda * (s[i] - rho));
     }
@@ -124,7 +121,6 @@ namespace MPPI {
     }
 
   public:
-
     /**
      * @brief Construct a new MPPIPathPlanner object
      *
@@ -146,6 +142,7 @@ namespace MPPI {
         u = vec3_t::Zero(DIM_U, 1);
       u_pre_ = u_;
       opt_path_.resize(param_.T);
+      inv_sigma_ = param_.sigma.inverse();
     }
     /**
      * @brief 制御入力の制限設定
@@ -165,6 +162,8 @@ namespace MPPI {
      * @return std::vector<control_t> 制御入力
      */
     std::vector<control_t> path_planning(state_t x_t, state_t x_tar) {
+      double ts, te;
+      ts                                              = omp_get_wtime();
       x_t(5)                                          = normalize_angle(x_t(5));
       u_                                              = u_pre_;
       const std::vector<std::vector<vec3_t>>& epsilon = calc_epsilon(param_.sigma, param_.K, param_.T);
@@ -179,12 +178,13 @@ namespace MPPI {
           sample_path_[i][j] = f_(x, clamp(v), param_.dt); // 状態計算
           x                  = sample_path_[i][j];
           x(5)               = normalize_angle(x(5));
-          stage_cost_[i] += C(x, u_[j], x_tar) + ganmma_ * u_[j].transpose() * param_.sigma.inverse() * v; // ステージコスト
+          stage_cost_[i] += C(x, u_[j], x_tar) + ganmma_ * u_[j].transpose() * inv_sigma_ * v; // ステージコスト
         }
         stage_cost_[i] += phi(x, x_tar); // ターミナルコスト
       }
       calc_weight(stage_cost_);
       std::vector<control_t> w_epsilon(param_.T);
+#pragma omp parallel for
       for (size_t i = 0; i < param_.T; i++) {
         w_epsilon[i] = vec3_t::Zero(DIM_U, 1);
         for (size_t j = 0; j < param_.K; j++)
@@ -201,6 +201,8 @@ namespace MPPI {
       size_t U_N = u_.size();
       std::copy(u_.begin() + 1, u_.end(), u_pre_.begin());
       u_pre_[U_N - 1] = u_[U_N - 1];
+      te              = omp_get_wtime();
+      log_info("calc time:%f[s]", te - ts);
       return u_;
     }
     /**
