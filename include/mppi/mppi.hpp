@@ -71,15 +71,15 @@ namespace MPPI {
       return epsilon;
     }
     // 　コスト関数
-    double C(state_t x_t, control_t u_t, state_t x_goal) {
+    double C(state_t x_t, control_t u_t, state_t x_tar) {
       double stage_cost = 0.0;
-      stage_cost += (x_t - x_goal).transpose() * param_.Q * (x_t - x_goal);
+      stage_cost += (x_t - x_tar).transpose() * param_.Q * (x_t - x_tar);
       stage_cost += u_t.transpose() * param_.R * u_t;
       return stage_cost;
     }
-    double phi(state_t x_t, state_t x_goal) {
+    double phi(state_t x_t, state_t x_tar) {
       double terminal_cost = 0.0;
-      terminal_cost += (x_t - x_goal).transpose() * param_.Q_T * (x_t - x_goal);
+      terminal_cost += (x_t - x_tar).transpose() * param_.Q_T * (x_t - x_tar);
       return terminal_cost;
     }
     // 重み計算
@@ -161,10 +161,10 @@ namespace MPPI {
      * @brief MPPI計算
      *
      * @param x_t 現在の状態
-     * @param x_goal ゴールの状態
+     * @param x_tar ゴールの状態
      * @return std::vector<control_t> 制御入力
      */
-    std::vector<control_t> path_planning(state_t x_t, state_t x_goal) {
+    std::vector<control_t> path_planning(state_t x_t, state_t x_tar) {
       x_t(5)                                          = normalize_angle(x_t(5));
       u_                                              = u_pre_;
       const std::vector<std::vector<vec3_t>>& epsilon = calc_epsilon(param_.sigma, param_.K, param_.T);
@@ -179,9 +179,9 @@ namespace MPPI {
           sample_path_[i][j] = f_(x, clamp(v), param_.dt); // 状態計算
           x                  = sample_path_[i][j];
           x(5)               = normalize_angle(x(5));
-          stage_cost_[i] += C(x, u_[j], x_goal) + ganmma_ * u_[j].transpose() * param_.sigma.inverse() * v; // ステージコスト
+          stage_cost_[i] += C(x, u_[j], x_tar) + ganmma_ * u_[j].transpose() * param_.sigma.inverse() * v; // ステージコスト
         }
-        stage_cost_[i] += phi(x, x_goal); // ターミナルコスト
+        stage_cost_[i] += phi(x, x_tar); // ターミナルコスト
       }
       calc_weight(stage_cost_);
       std::vector<control_t> w_epsilon(param_.T);

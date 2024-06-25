@@ -130,13 +130,13 @@ int main()
   param.Q_T = Q_T;
   MPPI::MPPIPathPlanner mppi(param, f);
   mppi.set_velocity_limit({-0.3, -0.3, -1.0}, {0.3, 0.3, 1.0});
-  cpp_robot_sim::state_t x_goal;
-  x_goal << 0.0, 0.0, 0.0, 1.0, 2.0, MPPI::constants::HALF_PI;
-  const double all_window_max = std::max(x_goal(3), x_goal(4));
+  cpp_robot_sim::state_t x_tar;
+  x_tar << 0.0, 0.0, 0.0, 1.0, 2.0, MPPI::constants::HALF_PI;
+  const double all_window_max = std::max(x_tar(3), x_tar(4));
   while (1)
   {
     // mppi計算
-    std::vector<cpp_robot_sim::control_t> u = mppi.path_planning(sim.x_t, x_goal);
+    std::vector<cpp_robot_sim::control_t> u = mppi.path_planning(sim.x_t, x_tar);
     std::vector<cpp_robot_sim::state_t> opt_path = mppi.get_opt_path();
     std::vector<std::vector<cpp_robot_sim::state_t>> sample_path = mppi.get_sample_path();
     cpp_robot_sim::control_t v_t;
@@ -170,7 +170,7 @@ int main()
       opt_y.push_back(i(4));
     }
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
-    plt.plot(Args(x_goal(3), x_goal(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
+    plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(true);
     plt.subplot(131);
     plt.cla();
@@ -178,7 +178,7 @@ int main()
     plt.xlim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
     plt.ylim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
-    plt.plot(Args(x_goal(3), x_goal(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
+    plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(true);
     plt.subplot(133);
     plt.cla();
