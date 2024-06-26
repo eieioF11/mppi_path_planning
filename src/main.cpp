@@ -218,7 +218,6 @@ int main()
     plt.cla();
     draw_vel(plt, u, 0.1);
     plt.pause(Args(0.01));
-    // sleep(1);
   }
   return 0;
 }
