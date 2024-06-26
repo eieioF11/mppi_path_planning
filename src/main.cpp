@@ -24,7 +24,8 @@
 #define WINDOW_SIZE 0.3
 #define ALL_WINDOW_LIM 0.1
 #define ROBOT_SIZE 0.1
-#define HOLONOMIC
+#define VEL_LIM 3.0 // -VEL_LIM~VEL_LIMで表示
+// #define HOLONOMIC
 
 #ifdef HOLONOMIC
 cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_t, double dt)
@@ -70,7 +71,7 @@ cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_
 }
 #endif
 
-void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_sim::control_t> &u,double dt)
+void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_sim::control_t> &u, double dt)
 {
   std::vector<double> vx, vy, w, k;
   double i = 0;
@@ -79,15 +80,16 @@ void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_
     vx.push_back(v(0));
     vy.push_back(v(1));
     w.push_back(v(2));
-    k.push_back(i*dt);
+    k.push_back(i * dt);
     i++;
   }
   plt.grid();
-  plt.xlim(Args(0, k.size()*dt));
-  plt.ylim(Args(-3, 3));
-  plt.plot(Args(k, vx), Kwargs("color"_a = "red",  "linestyle"_a = "--"));
-  plt.plot(Args(k, vy), Kwargs("color"_a = "green",  "linestyle"_a = "--"));
-  plt.plot(Args(k, w), Kwargs("color"_a = "blue",  "linestyle"_a = "--"));
+  plt.xlim(Args(0, k.size() * dt));
+  plt.ylim(Args(-VEL_LIM, VEL_LIM));
+  plt.plot(Args(k, vx), Kwargs("color"_a = "red", "linestyle"_a = "--", "label"_a = "v_x"));
+  plt.plot(Args(k, vy), Kwargs("color"_a = "green", "linestyle"_a = "--", "label"_a = "v_y"));
+  plt.plot(Args(k, w), Kwargs("color"_a = "blue", "linestyle"_a = "--", "label"_a = "w"));
+  plt.legend();
 }
 
 int main()
@@ -100,19 +102,19 @@ int main()
   cpp_robot_sim::simulator sim(plt, f, ROBOT_SIZE, ROBOT_SIZE);
   MPPI::param_t param;
   param.T = 40;
-  // param.K = 200;
   param.K = 500;
   param.dt = 0.01;
   param.lambda = 1.0;
-  param.alpha = 0.8;
+  param.alpha = 0.1;
+#ifdef HOLONOMIC
   Eigen::Matrix<double, 3, 3> sigma;
-  sigma << 1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
+  sigma << 0.5, 0.0, 0.0,
+      0.0, 0.5, 0.0,
       0.0, 0.0, 1.0;
   Eigen::Matrix<double, 6, 6> Q;
-  Q << 10.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 10.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 5.0, 0.0, 0.0, 0.0,
+  Q << 5.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 5.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 60.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 60.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 10.0;
@@ -120,21 +122,50 @@ int main()
   Q_T << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 100.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 100.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 50.0;
+      0.0, 0.0, 0.0, 200.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 200.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 70.0;
   Eigen::Matrix<double, 3, 3> R;
   R << 5.0, 0.0, 0.0,
       0.0, 5.0, 0.0,
       0.0, 0.0, 2.0;
+#else
+  Eigen::Matrix<double, 3, 3> sigma;
+  sigma << 0.5, 0.0, 0.0,
+      0.0, 0.001, 0.0,
+      0.0, 0.0, 1.0;
+  Eigen::Matrix<double, 6, 6> Q;
+  Q << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 700.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 700.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  Eigen::Matrix<double, 6, 6> Q_T;
+  Q_T << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 1000.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 1000.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+  Eigen::Matrix<double, 3, 3> R;
+  R << 5.0, 0.0, 0.0,
+      0.0, 0.0, 0.0,
+      0.0, 0.0, 2.0;
+#endif
   param.sigma = sigma;
   param.Q = Q;
   param.R = R;
   param.Q_T = Q_T;
   MPPI::MPPIPathPlanner mppi(param, f);
-  mppi.set_velocity_limit({-0.3, -0.3, -1.0}, {0.3, 0.3, 1.0});
+#ifdef HOLONOMIC
+  mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
+#else
+  mppi.set_velocity_limit({-0.5, 0.0, -2.4}, {0.3, 0.0, 2.4});
+#endif
   cpp_robot_sim::state_t x_tar;
   x_tar << 0.0, 0.0, 0.0, 1.0, 2.0, MPPI::constants::HALF_PI;
+  // x_tar << 0.0, 0.0, 0.0, 1.0, 2.0, std::atan2(2.0, 1.0);
   const double all_window_max = std::max(x_tar(3), x_tar(4));
   while (1)
   {
