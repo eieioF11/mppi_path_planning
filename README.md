@@ -28,7 +28,7 @@ git submodule update --init --recursive
 ## Build
 
 ```bash
-g++ -Wall -fopenmp -std=c++17 $(pkg-config --cflags eigen3) src/main.cpp -I /usr/include/python3.10 -lpython3.10 -O3
+g++ -g -Wall -std=c++17 -O3 -fopenmp $(pkg-config --cflags eigen3) src/main.cpp -I /usr/include/python3.10 -lpython3.10
 ```
 or
 ```bash

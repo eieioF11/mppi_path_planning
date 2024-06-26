@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+      {
+          "name": "gdb",
+          "type": "cppdbg",
+          "request": "launch",
+          "program": "${fileDirname}/../a.out",//デバッグ対象のファイルと同じディレクトリにあるa.outという実行可能プログラムを実行
+          "cwd": "${fileDirname}",
+          "externalConsole": true,
+          "pipeTransport": {
+              "debuggerPath": "/usr/bin/gdb",
+              "pipeProgram": "/usr/bin/bash",
+              "pipeArgs": ["-c"],
+              "pipeCwd": "/"
+          },
+          "setupCommands": [
+              {
+                  "description": "Enable pretty-printing for gdb",
+                  "text": "-enable-pretty-printing",
+                  "ignoreFailures": true
+              }
+          ],
+
+      }
+  ]
+}

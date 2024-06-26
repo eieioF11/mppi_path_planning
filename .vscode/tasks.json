@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++ build active file",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-fdiagnostics-color=always",
+        "-g",//行番号などの情報を渡し、コンパイル・実行時エラーの際に表示させる
+        "-Wall",//警告を表示
+        "-std=c++17",//C++17を使用
+        "-O0",//最適化オプション
+        // "-O3",//最適化オプション
+        "-fopenmp",//OpenMPを使用
+        "-I/usr/include/eigen3",//Eigen3のヘッダファイルのパス
+        "src/main.cpp",//パスを含めたファイル名
+        "-I/usr/include/python3.10",//Python3.10のヘッダファイルのパス
+        "-lpython3.10",//Python3.10のライブラリのパス
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+		}
+	]
+}
