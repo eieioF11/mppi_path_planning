@@ -161,7 +161,7 @@ int main()
 #ifdef HOLONOMIC
   mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
 #else
-  mppi.set_velocity_limit({-0.5, 0.0, -2.4}, {0.3, 0.0, 2.4});
+  mppi.set_velocity_limit({-0.5, 0.0, -2.4}, {0.5, 0.0, 2.4});
 #endif
   cpp_robot_sim::state_t x_tar;
   x_tar << 0.0, 0.0, 0.0, 1.0, 2.0, MPPI::constants::HALF_PI;
