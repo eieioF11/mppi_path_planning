@@ -44,17 +44,17 @@ namespace MPPI {
 
     control_t clamp(const control_t& v) {
       control_t res;
-      for (int i = 0; i < DIM_U; i++)
+      for (int i = 0; i < DIM_U; ++i)
         res(i) = std::clamp(v(i), VEL_MIN[i], VEL_MAX[i]);
       return res;
     }
 
     // ノイズの生成
-    std::vector<std::vector<vec3_t>> calc_epsilon(const Eigen::Matrix<double, 3, 3>& sigma, size_t K, size_t T) {
+    std::vector<std::vector<vec3_t>> calc_epsilon(const Eigen::Matrix<double, 3, 3>& sigma,const size_t &K,const size_t &T) {
       std::vector<std::vector<vec3_t>> epsilon(K);
-      for (size_t i = 0; i < K; i++) {
+      for (size_t i = 0; i < K; ++i) {
         epsilon[i].resize(T);
-        for (size_t j = 0; j < T; j++) {
+        for (size_t j = 0; j < T; ++j) {
           std::mt19937 engine((std::random_device())());
           std::normal_distribution<> dist(0.0, 1.0);
           vec3_t v;
@@ -66,13 +66,13 @@ namespace MPPI {
       return epsilon;
     }
     // 　コスト関数
-    double C(state_t x_t, control_t u_t, state_t x_tar) {
+    double C(state_t &x_t, control_t &u_t, state_t &x_tar) {
       double stage_cost = 0.0;
       stage_cost += (x_t - x_tar).transpose() * param_.Q * (x_t - x_tar);
       stage_cost += u_t.transpose() * param_.R * u_t;
       return stage_cost;
     }
-    double phi(state_t x_t, state_t x_tar) {
+    double phi(state_t &x_t, state_t &x_tar) {
       double terminal_cost = 0.0;
       terminal_cost += (x_t - x_tar).transpose() * param_.Q_T * (x_t - x_tar);
       return terminal_cost;
@@ -90,7 +90,7 @@ namespace MPPI {
       // 重み計算
       double inv_eta = 1.0 / eta;
 #pragma omp parallel for
-      for (size_t i = 0; i < param_.K; i++)
+      for (size_t i = 0; i < param_.K; ++i)
         weight_[i] = inv_eta * std::exp(-inv_lambda * (s[i] - rho));
     }
 
@@ -102,7 +102,7 @@ namespace MPPI {
         std::vector<double> temp(n + window_size - 1, 0.0);
         // Padding the temp array with the first and last values
         for (size_t i = 0; i < n; ++i)
-          temp[i + window_size / 2] = xx[i](d);
+          temp[i + window_size * 0.5] = xx[i](d);
         for (size_t i = 0; i < n; ++i) {
           double sum = 0.0;
           for (size_t j = 0; j < window_size; ++j) {
@@ -133,7 +133,7 @@ namespace MPPI {
       ganmma_ = param_.lambda * (1.0 - param_.alpha);
       // メモリ確保
       sample_path_.resize(param_.K);
-      for (size_t i = 0; i < param_.K; i++)
+      for (size_t i = 0; i < param_.K; ++i)
         sample_path_[i].resize(param_.T);
       stage_cost_.resize(param_.K);
       weight_.resize(param_.K);
@@ -170,10 +170,10 @@ namespace MPPI {
 
       // サンプルとコストの計算
 #pragma omp parallel for
-      for (size_t i = 0; i < param_.K; i++) {
+      for (size_t i = 0; i < param_.K; ++i) {
         stage_cost_[i] = 0.0;
         state_t x      = x_t;
-        for (size_t j = 0; j < param_.T; j++) {
+        for (size_t j = 0; j < param_.T; ++j) {
           control_t v        = u_[j] + epsilon[i][j];      // ノイズ付き制御入力
           sample_path_[i][j] = f_(x, clamp(v), param_.dt); // 状態計算
           x                  = sample_path_[i][j];
@@ -185,14 +185,14 @@ namespace MPPI {
       calc_weight(stage_cost_);
       std::vector<control_t> w_epsilon(param_.T);
 #pragma omp parallel for
-      for (size_t i = 0; i < param_.T; i++) {
+      for (size_t i = 0; i < param_.T; ++i) {
         w_epsilon[i] = vec3_t::Zero(DIM_U, 1);
-        for (size_t j = 0; j < param_.K; j++)
+        for (size_t j = 0; j < param_.K; ++j)
           w_epsilon[i] += weight_[j] * epsilon[j][i];
       }
       w_epsilon = moveing_average(w_epsilon, 70);
       state_t x = x_t;
-      for (size_t i = 0; i < param_.T; i++) {
+      for (size_t i = 0; i < param_.T; ++i) {
         u_[i] += w_epsilon[i];
         x            = f_(x, clamp(u_[i]), param_.dt);
         opt_path_[i] = x;
