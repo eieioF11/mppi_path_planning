@@ -73,6 +73,7 @@
     "strstream": "cpp",
     "codecvt": "cpp",
     "future": "cpp",
-    "cfenv": "cpp"
+    "cfenv": "cpp",
+    "*.ipp": "cpp"
   }
 }

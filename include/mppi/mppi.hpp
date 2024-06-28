@@ -32,6 +32,7 @@ namespace MPPI {
     state_t x_t;
     param_t param_;
     double ganmma_;
+    double inv_lambda_;
     Eigen::Matrix<double, 3, 3> inv_sigma_;
     std::array<double, 3> VEL_MAX = {1.0, 1.0, 1.0};
     std::array<double, 3> VEL_MIN = {-1.0, -1.0, -1.0};
@@ -54,7 +55,7 @@ namespace MPPI {
       std::mt19937 engine((std::random_device())());
       std::normal_distribution<> dist(0.0, 1.0);
       vec3_t n;
-      for (size_t i = 0; i < 3; i++)
+      for (size_t i = 0; i < DIM_U; i++)
         n(i) = dist(engine);
       return param_.sigma * n;
     }
@@ -75,16 +76,15 @@ namespace MPPI {
       auto min_element = std::min_element(s.begin(), s.end());
       double rho       = *min_element;
       // 正規化項計算
-      double inv_lambda = 1.0 / param_.lambda;
       double eta        = 0;
 #pragma omp parallel for reduction(+ : eta) schedule(dynamic)
       for (const auto& c : s)
-        eta += std::exp(-inv_lambda * (c - rho));
+        eta += std::exp(-inv_lambda_ * (c - rho));
       // 重み計算
       double inv_eta = 1.0 / eta;
 #pragma omp parallel for schedule(dynamic)
       for (size_t i = 0; i < param_.K; ++i)
-        weight_[i] = inv_eta * std::exp(-inv_lambda * (s[i] - rho));
+        weight_[i] = inv_eta * std::exp(-inv_lambda_ * (s[i] - rho));
     }
 
     std::vector<control_t> moveing_average(const std::vector<control_t>& xx, const size_t& window_size) {
@@ -139,6 +139,7 @@ namespace MPPI {
       u_pre_ = u_;
       opt_path_.resize(param_.T);
       inv_sigma_ = param_.sigma.inverse();
+      inv_lambda_ = 1.0 / param_.lambda;
     }
     /**
      * @brief 制御入力の制限設定
