@@ -18,7 +18,7 @@
 // Eigen
 #include <Eigen/Dense>
 //
-#include "math_util.hpp"
+#include "math_utility.hpp"
 #include "param.hpp"
 #include "utility.hpp"
 
