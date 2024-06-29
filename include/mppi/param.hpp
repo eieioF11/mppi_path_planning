@@ -22,6 +22,7 @@ namespace MPPI {
     double dt; // control interval
     double lambda; // temperature parameter
     double alpha;
+    double window_size;
     Eigen::Matrix<double, 3, 3> sigma; // disturbance of noise
     Eigen::Matrix<double, 6, 6> Q; // ステージコストの状態量重み
     Eigen::Matrix<double, 3, 3> R; // ステージコストの入力量重み

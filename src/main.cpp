@@ -94,12 +94,12 @@ void draw_vel(matplotlibcpp17::pyplot::PyPlot &plt, const std::vector<cpp_robot_
 
 int main()
 {
-  std::cout << "MAX threads NUM:" << omp_get_max_threads() << std::endl;
+  int THREAD_NUM = omp_get_max_threads();
   pybind11::scoped_interpreter guard{};
   auto plt = matplotlibcpp17::pyplot::import();
   // auto fig = plt.figure();
   auto [fig, ax] = plt.subplots(1, 3, Kwargs("figsize"_a = py::make_tuple(18, 7), "subplot_kw"_a = py::dict("aspect"_a = "equal")));
-  cpp_robot_sim::simulator sim(plt, f, ROBOT_SIZE, ROBOT_SIZE);
+  cpp_robot_sim::simulator sim(f, ROBOT_SIZE, ROBOT_SIZE);
   MPPI::param_t param;
   param.T = 40;
   param.K = 500;
@@ -132,21 +132,21 @@ int main()
 #else
   Eigen::Matrix<double, 3, 3> sigma;
   sigma << 0.5, 0.0, 0.0,
-      0.0, 0.001, 0.0,
-      0.0, 0.0, 1.0;
+      0.0, 0.0001, 0.0,
+      0.0, 0.0, 2.5;
   Eigen::Matrix<double, 6, 6> Q;
-  Q << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+  Q << 10.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 700.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 700.0, 0.0,
+      0.0, 0.0, 0.0, 800.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 800.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
   Eigen::Matrix<double, 6, 6> Q_T;
   Q_T << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 1000.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 1000.0, 0.0,
+      0.0, 0.0, 0.0, 1200.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 1200.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
   Eigen::Matrix<double, 3, 3> R;
   R << 5.0, 0.0, 0.0,
@@ -157,6 +157,7 @@ int main()
   param.Q = Q;
   param.R = R;
   param.Q_T = Q_T;
+  param.window_size = 40.0; // 70.0
   MPPI::MPPIPathPlanner mppi(param, f);
 #ifdef HOLONOMIC
   mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
@@ -169,12 +170,14 @@ int main()
   const double all_window_max = std::max(x_tar(3), x_tar(4));
   while (1)
   {
+    std::cout << "MAX threads NUM:" << THREAD_NUM << std::endl;
     // mppi計算
     std::vector<cpp_robot_sim::control_t> u = mppi.path_planning(sim.x_t, x_tar);
     std::vector<cpp_robot_sim::state_t> opt_path = mppi.get_opt_path();
     std::vector<std::vector<cpp_robot_sim::state_t>> sample_path = mppi.get_sample_path();
     cpp_robot_sim::control_t v_t;
     v_t = u[0];
+    std::cout << "dt:" << sim.deltaT() << std::endl;
     sim.update(v_t, param.dt);
     // デバック用
     sim.x_t(0) = v_t(0);
@@ -187,25 +190,26 @@ int main()
     plt.grid();
     plt.xlim(Args(sim.x_t(3) - WINDOW_SIZE, sim.x_t(3) + WINDOW_SIZE));
     plt.ylim(Args(sim.x_t(4) - WINDOW_SIZE, sim.x_t(4) + WINDOW_SIZE));
-    for (const auto &i : sample_path)
+    std::vector<double> sample_x(sample_path[0].size()), sample_y(sample_path[0].size());
+    for (const auto &path : sample_path)
     {
-      std::vector<double> sample_x, sample_y;
-      for (const auto &j : i)
+      for (size_t i = 0; i < path.size(); i++)
       {
-        sample_x.push_back(j(3));
-        sample_y.push_back(j(4));
+        sample_x[i] = path[i](3);
+        sample_y[i] = path[i](4);
       }
       plt.plot(Args(sample_x, sample_y), Kwargs("color"_a = "grey", "linewidth"_a = 0.1));
     }
-    std::vector<double> opt_x, opt_y;
-    for (const auto &i : opt_path)
+    std::vector<double> opt_x(opt_path.size()), opt_y(opt_path.size());
+#pragma omp parallel for schedule(dynamic)
+    for (size_t i = 0; i < opt_path.size(); i++)
     {
-      opt_x.push_back(i(3));
-      opt_y.push_back(i(4));
+      opt_x[i] = opt_path[i](3);
+      opt_y[i] = opt_path[i](4);
     }
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
-    sim.draw(true);
+    sim.draw(plt, true);
     plt.subplot(131);
     plt.cla();
     plt.grid();
@@ -213,11 +217,11 @@ int main()
     plt.ylim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
-    sim.draw(true);
+    sim.draw(plt, true);
     plt.subplot(133);
     plt.cla();
     draw_vel(plt, u, 0.1);
-    plt.pause(Args(0.01));
+    plt.pause(Args(0.001));
   }
   return 0;
 }

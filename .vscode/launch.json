@@ -5,7 +5,8 @@
           "name": "gdb",
           "type": "cppdbg",
           "request": "launch",
-          "program": "${fileDirname}/../a.out",//デバッグ対象のファイルと同じディレクトリにあるa.outという実行可能プログラムを実行
+        //   "program": "${fileDirname}/../a.out",//デバッグ対象のファイルと同じディレクトリにあるa.outという実行可能プログラムを実行
+          "program": "${workspaceFolder}/a.out",//デバッグ対象のファイルと同じディレクトリにあるa.outという実行可能プログラムを実行
           "cwd": "${fileDirname}",
           "externalConsole": true,
           "pipeTransport": {

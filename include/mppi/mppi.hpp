@@ -54,21 +54,27 @@ namespace MPPI {
     control_t noise() {
       std::mt19937 engine((std::random_device())());
       std::normal_distribution<> dist(0.0, 1.0);
+      Eigen::LLT<Eigen::MatrixXd> llt(param_.sigma);
+      Eigen::MatrixXd L = llt.matrixL();
       vec3_t n;
       for (size_t i = 0; i < DIM_U; i++)
         n(i) = dist(engine);
-      return param_.sigma * n;
+      return L * n;
     }
     // 　コスト関数
     double C(const state_t& x_t, const control_t& u_t, const state_t& x_tar) {
       double stage_cost = 0.0;
-      stage_cost += (x_t - x_tar).transpose() * param_.Q * (x_t - x_tar);
+      state_t diff_x       = x_t - x_tar;
+      diff_x(5)    = normalize_angle(diff_x(5));
+      stage_cost += diff_x.transpose() * param_.Q * diff_x;
       stage_cost += u_t.transpose() * param_.R * u_t;
       return stage_cost;
     }
     double phi(const state_t& x_t, const state_t& x_tar) {
       double terminal_cost = 0.0;
-      terminal_cost += (x_t - x_tar).transpose() * param_.Q_T * (x_t - x_tar);
+      state_t diff_x          = x_t - x_tar;
+      diff_x(5)    = normalize_angle(diff_x(5));
+      terminal_cost += diff_x.transpose() * param_.Q_T * diff_x;
       return terminal_cost;
     }
     // 重み計算
@@ -76,7 +82,7 @@ namespace MPPI {
       auto min_element = std::min_element(s.begin(), s.end());
       double rho       = *min_element;
       // 正規化項計算
-      double eta        = 0;
+      double eta = 0;
 #pragma omp parallel for reduction(+ : eta) schedule(dynamic)
       for (const auto& c : s)
         eta += std::exp(-inv_lambda_ * (c - rho));
@@ -88,9 +94,10 @@ namespace MPPI {
     }
 
     std::vector<control_t> moveing_average(const std::vector<control_t>& xx, const size_t& window_size) {
-      size_t n = xx.size();
+      const size_t n = xx.size();
       std::vector<control_t> xx_mean(n, vec3_t::Zero(DIM_U, 1));
       std::vector<double> window(window_size, 1.0 / window_size);
+      #pragma omp parallel for schedule(dynamic)
       for (size_t d = 0; d < DIM_U; ++d) {
         std::vector<double> temp(n + window_size - 1, 0.0);
         // Padding the temp array with the first and last values
@@ -138,7 +145,8 @@ namespace MPPI {
         u = vec3_t::Zero(DIM_U, 1);
       u_pre_ = u_;
       opt_path_.resize(param_.T);
-      inv_sigma_ = param_.sigma.inverse();
+      // inverse calculation
+      inv_sigma_  = param_.sigma.inverse();
       inv_lambda_ = 1.0 / param_.lambda;
     }
     /**
@@ -174,11 +182,11 @@ namespace MPPI {
           // ノイズ付き制御入力計算
           control_t v = u_[t - 1] + epsilon_[k][t - 1];
           // 状態計算
-          sample_path_[k][t - 1] = f_(x, clamp(v), param_.dt);
-          x                      = sample_path_[k][t - 1];
-          x(5)                   = normalize_angle(x(5));
+          x = f_(x, clamp(v), param_.dt);
           // ステージコスト計算
           cost_[k] += C(x, v, x_tar) + ganmma_ * u_[t - 1].transpose() * inv_sigma_ * v; // ステージコスト
+          // debug
+          sample_path_[k][t - 1] = x;
         }
         // 終端コスト計算
         cost_[k] += phi(x, x_tar);
@@ -191,7 +199,7 @@ namespace MPPI {
         for (size_t k = 0; k < param_.K; ++k)
           w_epsilon[t] += weight_[k] * epsilon_[k][t];
       }
-      w_epsilon = moveing_average(w_epsilon, 70);
+      w_epsilon = moveing_average(w_epsilon, param_.window_size);
       state_t x = x_t;
       for (size_t t = 0; t < param_.T; ++t) {
         u_[t] += w_epsilon[t];
