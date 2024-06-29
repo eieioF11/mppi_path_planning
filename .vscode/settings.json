@@ -74,6 +74,7 @@
     "codecvt": "cpp",
     "future": "cpp",
     "cfenv": "cpp",
-    "*.ipp": "cpp"
+    "*.ipp": "cpp",
+    "core": "cpp"
   }
 }
