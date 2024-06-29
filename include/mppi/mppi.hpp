@@ -57,7 +57,7 @@ namespace MPPI {
       Eigen::LLT<Eigen::MatrixXd> llt(param_.sigma);
       Eigen::MatrixXd L = llt.matrixL();
       vec3_t n;
-      for (size_t i = 0; i < DIM_U; i++)
+      for (size_t i = 0; i < DIM_U; ++i)
         n(i) = dist(engine);
       return L * n;
     }
@@ -181,6 +181,8 @@ namespace MPPI {
           epsilon_[k][t - 1] = noise();
           // ノイズ付き制御入力計算
           control_t v = u_[t - 1] + epsilon_[k][t - 1];
+          if(k < (1.0-0.4)*param_.K)
+            v = epsilon_[k][t - 1];
           // 状態計算
           x = f_(x, clamp(v), param_.dt);
           // ステージコスト計算
