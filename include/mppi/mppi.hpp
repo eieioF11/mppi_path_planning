@@ -21,12 +21,15 @@
 #include "math_utility.hpp"
 #include "param.hpp"
 #include "utility.hpp"
+#include "grid_map.hpp"
 
 namespace MPPI {
   class MPPIPathPlanner {
   private:
     typedef vec3_t control_t;
     typedef vec6_t state_t;
+
+    std::shared_ptr<GridMap> map_;
 
     std::function<state_t(state_t, control_t, double)> f_;
     state_t x_t;
@@ -68,6 +71,12 @@ namespace MPPI {
       diff_x(5)         = normalize_angle(diff_x(5));
       stage_cost += diff_x.transpose() * param_.Q * diff_x;
       stage_cost += u_t.transpose() * param_.R * u_t;
+      if(map_){
+        auto [vx, vy] = map_->get_grid_pos(x_t(0), x_t(1));
+        if(map_->is_wall(vx, vy)){
+          stage_cost += param_.obstacle_cost;
+        }
+      }
       return stage_cost;
     }
     double phi(const state_t& x_t, const state_t& x_tar) {
@@ -75,6 +84,12 @@ namespace MPPI {
       state_t diff_x       = x_t - x_tar;
       diff_x(5)            = normalize_angle(diff_x(5));
       terminal_cost += diff_x.transpose() * param_.Q_T * diff_x;
+      if(map_){
+        auto [vx, vy] = map_->get_grid_pos(x_t(0), x_t(1));
+        if(map_->is_wall(vx, vy)){
+          terminal_cost += param_.obstacle_cost;
+        }
+      }
       return terminal_cost;
     }
     // 重み計算
@@ -158,6 +173,14 @@ namespace MPPI {
     void set_velocity_limit(std::array<double, 3> min, std::array<double, 3> max) {
       VEL_MAX = max;
       VEL_MIN = min;
+    }
+    /**
+     * @brief グリッドマップの設定
+     *
+     * @param map グリッドマップ
+     */
+    void set_map(const GridMap& map) {
+      map_ = std::make_shared<GridMap>(map);
     }
     /**
      * @brief MPPI計算

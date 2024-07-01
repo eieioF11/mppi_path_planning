@@ -158,7 +158,14 @@ int main()
   param.R = R;
   param.Q_T = Q_T;
   param.window_size = 50.0; // 70.0
+  param.obstacle_cost = 1000.0;
   MPPI::MPPIPathPlanner mppi(param, f);
+  MPPI::GridMap map;
+  map.resize(3.0, 3.0);
+  map.info.resolution = 0.1;
+  map.info.height = 3.0;
+  map.info.width = 3.0;
+  // mppi.set_map();
 #ifdef HOLONOMIC
   mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
 #else
@@ -172,8 +179,8 @@ int main()
   {
     std::cout << "MAX threads NUM:" << THREAD_NUM << std::endl;
     // mppi計算
-    const std::vector<cpp_robot_sim::control_t>& u = mppi.path_planning(sim.x_t, x_tar);
-    const std::vector<cpp_robot_sim::state_t>& opt_path = mppi.get_opt_path();
+    const std::vector<cpp_robot_sim::control_t> &u = mppi.path_planning(sim.x_t, x_tar);
+    const std::vector<cpp_robot_sim::state_t> &opt_path = mppi.get_opt_path();
     const std::vector<std::vector<cpp_robot_sim::state_t>> sample_path = mppi.get_sample_path();
     cpp_robot_sim::control_t v_t;
     v_t = u[0];
