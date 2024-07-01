@@ -101,11 +101,11 @@ int main()
   auto [fig, ax] = plt.subplots(1, 3, Kwargs("figsize"_a = py::make_tuple(18, 7), "subplot_kw"_a = py::dict("aspect"_a = "equal")));
   cpp_robot_sim::simulator sim(f, ROBOT_SIZE, ROBOT_SIZE);
   MPPI::param_t param;
-  param.T = 40;
+  param.T = 30;
   param.K = 500;
   param.dt = 0.01;
   param.lambda = 1.0;
-  param.alpha = 0.1;
+  param.alpha = 0.2;
 #ifdef HOLONOMIC
   Eigen::Matrix<double, 3, 3> sigma;
   sigma << 0.5, 0.0, 0.0,

@@ -64,16 +64,16 @@ namespace MPPI {
     // 　コスト関数
     double C(const state_t& x_t, const control_t& u_t, const state_t& x_tar) {
       double stage_cost = 0.0;
-      state_t diff_x       = x_t - x_tar;
-      diff_x(5)    = normalize_angle(diff_x(5));
+      state_t diff_x    = x_t - x_tar;
+      diff_x(5)         = normalize_angle(diff_x(5));
       stage_cost += diff_x.transpose() * param_.Q * diff_x;
       stage_cost += u_t.transpose() * param_.R * u_t;
       return stage_cost;
     }
     double phi(const state_t& x_t, const state_t& x_tar) {
       double terminal_cost = 0.0;
-      state_t diff_x          = x_t - x_tar;
-      diff_x(5)    = normalize_angle(diff_x(5));
+      state_t diff_x       = x_t - x_tar;
+      diff_x(5)            = normalize_angle(diff_x(5));
       terminal_cost += diff_x.transpose() * param_.Q_T * diff_x;
       return terminal_cost;
     }
@@ -97,7 +97,7 @@ namespace MPPI {
       const size_t n = xx.size();
       std::vector<control_t> xx_mean(n, vec3_t::Zero(DIM_U, 1));
       std::vector<double> window(window_size, 1.0 / window_size);
-      #pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
       for (size_t d = 0; d < DIM_U; ++d) {
         std::vector<double> temp(n + window_size - 1, 0.0);
         // Padding the temp array with the first and last values
@@ -181,8 +181,7 @@ namespace MPPI {
           epsilon_[k][t - 1] = noise();
           // ノイズ付き制御入力計算
           control_t v = u_[t - 1] + epsilon_[k][t - 1];
-          if(k < (1.0-0.4)*param_.K)
-            v = epsilon_[k][t - 1];
+          // if (k < (1.0 - 0.6) * param_.K) v = epsilon_[k][t - 1];
           // 状態計算
           x = f_(x, clamp(v), param_.dt);
           // ステージコスト計算
