@@ -72,9 +72,12 @@ namespace MPPI {
       stage_cost += diff_x.transpose() * param_.Q * diff_x;
       stage_cost += u_t.transpose() * param_.R * u_t;
       if(map_){
-        auto [vx, vy] = map_->get_grid_pos(x_t(0), x_t(1));
+        auto [vx, vy] = map_->get_grid_pos(x_t(3), x_t(4));
+        // std::cout << "xt:"<< x_t(3) << " yt:"<< x_t(4) << std::endl;
+        // std::cout << "vx:"<< vx << " vy:"<< vy << std::endl;
         if(map_->is_wall(vx, vy)){
           stage_cost += param_.obstacle_cost;
+          // std::cout << "obstacle" << std::endl;
         }
       }
       return stage_cost;
@@ -85,9 +88,10 @@ namespace MPPI {
       diff_x(5)            = normalize_angle(diff_x(5));
       terminal_cost += diff_x.transpose() * param_.Q_T * diff_x;
       if(map_){
-        auto [vx, vy] = map_->get_grid_pos(x_t(0), x_t(1));
+        auto [vx, vy] = map_->get_grid_pos(x_t(3), x_t(4));
         if(map_->is_wall(vx, vy)){
           terminal_cost += param_.obstacle_cost;
+          // std::cout << "obstacle" << std::endl;
         }
       }
       return terminal_cost;

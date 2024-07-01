@@ -115,15 +115,15 @@ int main()
   Q << 5.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 5.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 60.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 60.0, 0.0,
+      0.0, 0.0, 0.0, 80.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 80.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 10.0;
   Eigen::Matrix<double, 6, 6> Q_T;
   Q_T << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 200.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 200.0, 0.0,
+      0.0, 0.0, 0.0, 500.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 500.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 70.0;
   Eigen::Matrix<double, 3, 3> R;
   R << 5.0, 0.0, 0.0,
@@ -158,14 +158,29 @@ int main()
   param.R = R;
   param.Q_T = Q_T;
   param.window_size = 50.0; // 70.0
-  param.obstacle_cost = 1000.0;
+  param.obstacle_cost = 2000.0;
   MPPI::MPPIPathPlanner mppi(param, f);
   MPPI::GridMap map;
-  map.resize(3.0, 3.0);
-  map.info.resolution = 0.1;
-  map.info.height = 3.0;
-  map.info.width = 3.0;
-  // mppi.set_map();
+  map.resize(3, 3);
+  map.info.resolution = 1.0;
+  map.info.height = 3;
+  map.info.width = 3;
+  map.info.origin_x = 0.0;
+  map.info.origin_y = 0.0;
+  std::vector<std::vector<int8_t>> data(map.info.width, std::vector<int8_t>(map.info.height, 0));
+  for(size_t i=0;i<map.info.width;i++){
+    for(size_t j=0;j<map.info.height;j++){
+      map.set(i, j, 0.0);
+      if (i==1 && j==1)
+        map.set(i, j, MPPI::GridMap::WALL_VALUE);
+      data[i][j] = MPPI::GridMap::WALL_VALUE-map.at(i, j);
+    }
+  }
+  auto Zpy = py::array(py::cast(std::move(data)));
+  // plt.subplot(131);
+  // plt.imshow(Args(Zpy), Kwargs("cmap"_a = "gray"));
+  // plt.show();
+  // mppi.set_map(map);
 #ifdef HOLONOMIC
   mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
 #else
@@ -222,6 +237,7 @@ int main()
     plt.grid();
     plt.xlim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
     plt.ylim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
+    // plt.imshow(Args(Zpy), Kwargs("cmap"_a = "gray"));//マップ表示
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(plt, true);
