@@ -28,9 +28,9 @@
 // #define HOLONOMIC
 
 #ifdef HOLONOMIC
-cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_t, double dt)
+MPPI::vec6_t f(MPPI::vec6_t x_t, MPPI::vec3_t v_t, double dt)
 {
-  cpp_robot_sim::state_t x_next;
+  MPPI::vec6_t x_next;
   Eigen::Matrix<double, 6, 6> A;
   A << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -49,9 +49,9 @@ cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_
   return x_next;
 }
 #else
-cpp_robot_sim::state_t f(cpp_robot_sim::state_t x_t, cpp_robot_sim::control_t v_t, double dt)
+MPPI::vec6_t f(MPPI::vec6_t x_t, MPPI::vec3_t v_t, double dt)
 {
-  cpp_robot_sim::state_t x_next;
+  MPPI::vec6_t x_next;
   Eigen::Matrix<double, 6, 6> A;
   A << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -159,6 +159,7 @@ int main()
   param.Q_T = Q_T;
   param.window_size = 50.0; // 70.0
   param.obstacle_cost = 2000.0;
+  param.robot_size = ROBOT_SIZE;
   MPPI::MPPIPathPlanner mppi(param, f);
   MPPI::GridMap map;
   map.resize(3, 3);
@@ -180,7 +181,7 @@ int main()
   // plt.subplot(131);
   // plt.imshow(Args(Zpy), Kwargs("cmap"_a = "gray"));
   // plt.show();
-  // mppi.set_map(map);
+  mppi.set_map(map);
 #ifdef HOLONOMIC
   mppi.set_velocity_limit({-0.3, -0.3, -2.4}, {0.3, 0.3, 2.4});
 #else
@@ -237,7 +238,7 @@ int main()
     plt.grid();
     plt.xlim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
     plt.ylim(Args(-ALL_WINDOW_LIM, all_window_max + ALL_WINDOW_LIM));
-    // plt.imshow(Args(Zpy), Kwargs("cmap"_a = "gray"));//マップ表示
+    plt.imshow(Args(Zpy), Kwargs("cmap"_a = "gray"));//マップ表示
     plt.plot(Args(opt_x, opt_y), Kwargs("color"_a = "green", "linewidth"_a = 1.0));
     plt.plot(Args(x_tar(3), x_tar(4)), Kwargs("color"_a = "blue", "linewidth"_a = 1.0, "marker"_a = "o"));
     sim.draw(plt, true);

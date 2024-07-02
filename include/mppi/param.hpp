@@ -28,5 +28,6 @@ namespace MPPI {
     Eigen::Matrix<double, 3, 3> R; // ステージコストの入力量重み
     Eigen::Matrix<double, 6, 6> Q_T; // 終端コスト
     double obstacle_cost;
+    double robot_size; // [m]　半径
   };
 } // namespace MPPI

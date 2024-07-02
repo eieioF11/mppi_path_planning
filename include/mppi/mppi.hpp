@@ -18,10 +18,10 @@
 // Eigen
 #include <Eigen/Dense>
 //
+#include "grid_map.hpp"
 #include "math_utility.hpp"
 #include "param.hpp"
 #include "utility.hpp"
-#include "grid_map.hpp"
 
 namespace MPPI {
   class MPPIPathPlanner {
@@ -71,11 +71,11 @@ namespace MPPI {
       diff_x(5)         = normalize_angle(diff_x(5));
       stage_cost += diff_x.transpose() * param_.Q * diff_x;
       stage_cost += u_t.transpose() * param_.R * u_t;
-      if(map_){
+      if (map_) {
         auto [vx, vy] = map_->get_grid_pos(x_t(3), x_t(4));
         // std::cout << "xt:"<< x_t(3) << " yt:"<< x_t(4) << std::endl;
         // std::cout << "vx:"<< vx << " vy:"<< vy << std::endl;
-        if(map_->is_wall(vx, vy)){
+        if (map_->is_wall(vx, vy)) {
           stage_cost += param_.obstacle_cost;
           // std::cout << "obstacle" << std::endl;
         }
@@ -87,9 +87,9 @@ namespace MPPI {
       state_t diff_x       = x_t - x_tar;
       diff_x(5)            = normalize_angle(diff_x(5));
       terminal_cost += diff_x.transpose() * param_.Q_T * diff_x;
-      if(map_){
+      if (map_) {
         auto [vx, vy] = map_->get_grid_pos(x_t(3), x_t(4));
-        if(map_->is_wall(vx, vy)){
+        if (map_->is_wall(vx, vy)) {
           terminal_cost += param_.obstacle_cost;
           // std::cout << "obstacle" << std::endl;
         }
@@ -183,9 +183,7 @@ namespace MPPI {
      *
      * @param map グリッドマップ
      */
-    void set_map(const GridMap& map) {
-      map_ = std::make_shared<GridMap>(map);
-    }
+    void set_map(const GridMap& map) { map_ = std::make_shared<GridMap>(map); }
     /**
      * @brief MPPI計算
      *
@@ -231,7 +229,8 @@ namespace MPPI {
       state_t x = x_t;
       for (size_t t = 0; t < param_.T; ++t) {
         u_[t] += w_epsilon[t];
-        x            = f_(x, clamp(u_[t]), param_.dt);
+        u_[t]        = clamp(u_[t]);
+        x            = f_(x, u_[t], param_.dt);
         opt_path_[t] = x;
       }
       // 前回の制御入力シーケンスを更新（左に1ステップシフト）
